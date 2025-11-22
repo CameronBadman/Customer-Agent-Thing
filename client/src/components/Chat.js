@@ -13,10 +13,15 @@ const Chat = () => {
   const [currentChatId, setCurrentChatId] = useState(null);
   const [searchResults, setSearchResults] = useState([]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarRefreshTrigger, setSidebarRefreshTrigger] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMoreMessages, setHasMoreMessages] = useState(false);
+  const [totalMessageCount, setTotalMessageCount] = useState(0);
 
   const { user, logout, sendMessage, createNewChat, getChatMessages } = useAuth();
   const navigate = useNavigate();
   const messagesEndRef = useRef(null);
+  const messagesContainerRef = useRef(null);
 
   useEffect(() => {
     if (!user) {
@@ -29,7 +34,40 @@ const Chat = () => {
   }, [messages]);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
+  };
+
+  const loadMoreMessages = async () => {
+    if (!currentChatId || loadingMore || !hasMoreMessages) return;
+
+    try {
+      setLoadingMore(true);
+      const currentOffset = messages.length;
+      const response = await getChatMessages(currentChatId, currentOffset, 24);
+      
+      if (response.chat.messages.length > 0) {
+        setMessages(prev => [...response.chat.messages, ...prev]);
+        setHasMoreMessages(response.pagination.hasMore);
+      } else {
+        setHasMoreMessages(false);
+      }
+    } catch (error) {
+      console.error('Error loading more messages:', error);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
+
+  const handleScroll = (e) => {
+    const container = e.target;
+    if (container.scrollTop === 0 && hasMoreMessages && !loadingMore) {
+      const previousScrollHeight = container.scrollHeight;
+      loadMoreMessages().then(() => {
+        setTimeout(() => {
+          container.scrollTop = container.scrollHeight - previousScrollHeight;
+        }, 100);
+      });
+    }
   };
 
   const handleNewChat = async () => {
@@ -44,8 +82,12 @@ const Chat = () => {
           timestamp: new Date(),
         },
       ]);
+      setHasMoreMessages(false);
+      setTotalMessageCount(1);
       setSearchResults([]);
       setSidebarOpen(false);
+      // Trigger sidebar refresh to show the new chat
+      setSidebarRefreshTrigger(prev => prev + 1);
     } catch (error) {
       console.error('Error creating new chat:', error);
     }
@@ -56,19 +98,25 @@ const Chat = () => {
       setCurrentChatId(null);
       setMessages([]);
       setSearchResults([]);
+      setHasMoreMessages(false);
+      setTotalMessageCount(0);
       return;
     }
 
     try {
       setLoading(true);
-      const response = await getChatMessages(chatId);
+      const response = await getChatMessages(chatId, 0, 24);
       setCurrentChatId(chatId);
       setMessages(response.chat.messages || []);
+      setHasMoreMessages(response.pagination.hasMore);
+      setTotalMessageCount(response.pagination.totalMessages);
       setSearchResults([]);
       setSidebarOpen(false);
     } catch (error) {
       console.error('Error loading chat:', error);
       setMessages([]);
+      setHasMoreMessages(false);
+      setTotalMessageCount(0);
     } finally {
       setLoading(false);
     }
@@ -110,6 +158,8 @@ const Chat = () => {
 
       setTimeout(() => {
         setMessages((prev) => [...prev, botMessage]);
+        // Trigger sidebar refresh to update message count and last message
+        setSidebarRefreshTrigger(prev => prev + 1);
       }, 500);
     } catch (error) {
       setIsTyping(false);
@@ -153,6 +203,7 @@ const Chat = () => {
         currentChatId={currentChatId}
         onChatSelect={handleChatSelect}
         onNewChat={handleNewChat}
+        refreshTrigger={sidebarRefreshTrigger}
       />
       
       <div className="chat-main">
@@ -180,11 +231,22 @@ const Chat = () => {
             onSearchResults={handleSearchResults}
           />
 
-          <div className="chat-messages">
+          <div className="chat-messages" ref={messagesContainerRef} onScroll={handleScroll}>
             {loading && messages.length === 0 ? (
               <div className="loading-messages">Loading chat...</div>
             ) : (
               <>
+                {currentChatId && messages.length > 0 && (
+                  <div className="messages-status">
+                    {loadingMore && (
+                      <div className="loading-more">Loading more messages...</div>
+                    )}
+                    {!hasMoreMessages && messages.length >= totalMessageCount && (
+                      <div className="no-more-messages">No further messages</div>
+                    )}
+                  </div>
+                )}
+
                 {messages.length === 0 && !currentChatId && (
                   <div className="welcome-message">
                     <h3>Welcome to Customer Service!</h3>
