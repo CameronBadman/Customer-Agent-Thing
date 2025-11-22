@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import './ChatSidebar.css';
 
@@ -11,11 +11,7 @@ const ChatSidebar = ({ currentChatId, onChatSelect, onNewChat }) => {
   
   const { getChatList, deleteChat, updateChatTitle } = useAuth();
 
-  useEffect(() => {
-    fetchChats();
-  }, []);
-
-  const fetchChats = async () => {
+  const fetchChats = useCallback(async () => {
     try {
       setLoading(true);
       const response = await getChatList();
@@ -26,7 +22,11 @@ const ChatSidebar = ({ currentChatId, onChatSelect, onNewChat }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [getChatList]);
+
+  useEffect(() => {
+    fetchChats();
+  }, [fetchChats]);
 
   const handleDeleteChat = async (chatId, e) => {
     e.stopPropagation();
