@@ -77,7 +77,7 @@ const Chat = () => {
       setMessages([
         {
           id: 1,
-          content: 'Hello! How can I help you today?',
+          content: 'Hello! I\'m your IT Support Agent. What technical issue can I help you with today?',
           sender: 'bot',
           timestamp: new Date(),
         },
@@ -165,7 +165,7 @@ const Chat = () => {
       setIsTyping(false);
       const errorMessage = {
         id: Date.now() + 1,
-        content: 'Sorry, I encountered an error. Please try again.',
+        content: 'Sorry, I encountered a technical error. Please try again or describe your issue in more detail.',
         sender: 'bot',
         timestamp: new Date(),
       };
@@ -216,7 +216,7 @@ const Chat = () => {
               >
                 ☰
               </button>
-              <h2>Customer Service Chat</h2>
+              <h2>IT Support Agent</h2>
             </div>
             <div className="user-info">
               <span>Welcome, {user.username}</span>
@@ -249,10 +249,10 @@ const Chat = () => {
 
                 {messages.length === 0 && !currentChatId && (
                   <div className="welcome-message">
-                    <h3>Welcome to Customer Service!</h3>
-                    <p>Start a new chat or select a previous conversation from the sidebar.</p>
+                    <h3>Welcome to IT Support!</h3>
+                    <p>Need help with technical issues? Start a new chat or select a previous chat session.</p>
                     <button onClick={handleNewChat} className="start-chat-btn">
-                      Start New Chat
+                      Start New Chat Session
                     </button>
                   </div>
                 )}
@@ -264,7 +264,7 @@ const Chat = () => {
                   >
                     <div className="message-content">
                       {message.sender === 'bot' && (
-                        <strong>Customer Service: </strong>
+                        <strong>IT Support: </strong>
                       )}
                       {message.content}
                     </div>
@@ -277,7 +277,7 @@ const Chat = () => {
                 {isTyping && (
                   <div className="message bot-message typing">
                     <div className="message-content">
-                      <strong>Customer Service: </strong>
+                      <strong>IT Support: </strong>
                       <span className="typing-dots">
                         <span></span>
                         <span></span>
@@ -298,7 +298,7 @@ const Chat = () => {
                 type="text"
                 value={messageInput}
                 onChange={(e) => setMessageInput(e.target.value)}
-                placeholder={currentChatId ? "Type your message..." : "Start a new chat..."}
+                placeholder={currentChatId ? "Describe your technical issue..." : "Start a new IT support session..."}
                 maxLength="500"
                 disabled={loading}
                 className="message-input"
@@ -314,7 +314,7 @@ const Chat = () => {
 
             <div className="chat-status">
               <span className="status-indicator online"></span>
-              <span>Customer Service Online</span>
+              <span>IT Support Online</span>
             </div>
           </div>
         </div>

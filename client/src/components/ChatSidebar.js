@@ -17,7 +17,7 @@ const ChatSidebar = ({ currentChatId, onChatSelect, onNewChat, refreshTrigger })
       const response = await getChatList();
       setChatList(response.chats || []);
     } catch (error) {
-      setError('Failed to load chats');
+      setError('Failed to load support history');
       console.error('Error fetching chats:', error);
     } finally {
       setLoading(false);
@@ -48,7 +48,7 @@ const ChatSidebar = ({ currentChatId, onChatSelect, onNewChat, refreshTrigger })
           onChatSelect(null);
         }
       } catch (error) {
-        setError('Failed to delete chat');
+        setError('Failed to delete support ticket');
         console.error('Error deleting chat:', error);
       }
     }
@@ -80,7 +80,7 @@ const ChatSidebar = ({ currentChatId, onChatSelect, onNewChat, refreshTrigger })
       setEditingChatId(null);
       setEditTitle('');
     } catch (error) {
-      setError('Failed to update chat title');
+      setError('Failed to update ticket title');
       console.error('Error updating title:', error);
     }
   };
@@ -119,13 +119,13 @@ const ChatSidebar = ({ currentChatId, onChatSelect, onNewChat, refreshTrigger })
     return (
       <div className="chat-sidebar">
         <div className="sidebar-header">
-          <h3>Previous Chats</h3>
+          <h3>Support History</h3>
           <button className="new-chat-btn" onClick={onNewChat}>
             + New Chat
           </button>
         </div>
         <div className="loading-container">
-          <div>Loading chats...</div>
+          <div>Loading support history...</div>
         </div>
       </div>
     );
@@ -134,7 +134,7 @@ const ChatSidebar = ({ currentChatId, onChatSelect, onNewChat, refreshTrigger })
   return (
     <div className="chat-sidebar">
       <div className="sidebar-header">
-        <h3>Previous Chats</h3>
+        <h3>Support History</h3>
         <button className="new-chat-btn" onClick={onNewChat}>
           + New Chat
         </button>
@@ -152,8 +152,8 @@ const ChatSidebar = ({ currentChatId, onChatSelect, onNewChat, refreshTrigger })
       <div className="chat-list">
         {chatList.length === 0 ? (
           <div className="empty-state">
-            <p>No previous chats</p>
-            <p>Start a new conversation!</p>
+            <p>No previous support tickets</p>
+            <p>Start a new support session!</p>
           </div>
         ) : (
           chatList.map((chat) => (
