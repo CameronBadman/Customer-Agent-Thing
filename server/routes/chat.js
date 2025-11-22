@@ -136,13 +136,16 @@ router.get('/list', authMiddleware, async (req, res) => {
       });
     }
 
-    // Return chats ordered by most recent first
-    const chatList = userChat.chats.map(chat => ({
-      chatId: chat.chatId,
-      title: chat.title,
-      lastMessage: chat.lastMessage,
-      messageCount: chat.messageCount,
-      updatedAt: chat.lastUpdated
+    // Get actual message counts from Chat collection
+    const chatList = await Promise.all(userChat.chats.map(async (chat) => {
+      const actualChat = await Chat.findOne({ chatId: chat.chatId });
+      return {
+        chatId: chat.chatId,
+        title: chat.title,
+        lastMessage: chat.lastMessage,
+        messageCount: actualChat ? actualChat.messageCount : chat.messageCount,
+        updatedAt: chat.lastUpdated
+      };
     }));
 
     res.json({
