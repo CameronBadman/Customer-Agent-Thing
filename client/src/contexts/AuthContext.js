@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import axios from 'axios';
 
 const AuthContext = createContext();
@@ -20,15 +20,14 @@ export const AuthProvider = ({ children }) => {
 
   axios.defaults.headers.common['Authorization'] = token ? `Bearer ${token}` : '';
 
-  useEffect(() => {
-    if (token) {
-      verifyToken();
-    } else {
-      setLoading(false);
-    }
-  }, [token]);
+  const logout = () => {
+    localStorage.removeItem('token');
+    setToken(null);
+    setUser(null);
+    delete axios.defaults.headers.common['Authorization'];
+  };
 
-  const verifyToken = async () => {
+  const verifyToken = useCallback(async () => {
     try {
       const response = await axios.get(`${API_BASE_URL}/auth/verify`);
       if (response.data.success) {
@@ -42,7 +41,15 @@ export const AuthProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [API_BASE_URL]);
+
+  useEffect(() => {
+    if (token) {
+      verifyToken();
+    } else {
+      setLoading(false);
+    }
+  }, [token, verifyToken]);
 
   const login = async (email, password) => {
     try {
@@ -84,13 +91,6 @@ export const AuthProvider = ({ children }) => {
         message: error.response?.data?.message || 'Registration failed',
       };
     }
-  };
-
-  const logout = () => {
-    localStorage.removeItem('token');
-    setToken(null);
-    setUser(null);
-    delete axios.defaults.headers.common['Authorization'];
   };
 
   const sendMessage = async (message, chatId = null) => {
