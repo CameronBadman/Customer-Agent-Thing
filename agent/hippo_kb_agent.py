@@ -119,6 +119,46 @@ class HippocampusKBAgent:
 
         return "\n".join(prompt_parts)
 
+    def extract_user_facts(self, username, user_message, bot_response):
+        """Extract and store user-specific facts from conversation"""
+        message_lower = user_message.lower()
+
+        # Simple pattern matching for common user facts
+        facts_stored = []
+
+        # Computer/device type
+        if 'mac' in message_lower or 'macbook' in message_lower or 'imac' in message_lower:
+            self.add_user_knowledge(username, 'computer_type', 'User has a Mac computer')
+            facts_stored.append('computer_type: Mac')
+        elif 'windows' in message_lower or 'pc' in message_lower:
+            self.add_user_knowledge(username, 'computer_type', 'User has a Windows computer')
+            facts_stored.append('computer_type: Windows')
+        elif 'linux' in message_lower or 'ubuntu' in message_lower:
+            self.add_user_knowledge(username, 'computer_type', 'User has a Linux computer')
+            facts_stored.append('computer_type: Linux')
+
+        # Department mentions
+        if 'work in' in message_lower or 'department' in message_lower:
+            for dept in ['engineering', 'sales', 'marketing', 'hr', 'finance', 'support']:
+                if dept in message_lower:
+                    self.add_user_knowledge(username, 'department', f'User works in {dept} department')
+                    facts_stored.append(f'department: {dept}')
+                    break
+
+        # Location mentions
+        if 'located in' in message_lower or 'office in' in message_lower or 'based in' in message_lower:
+            # Extract location (simplified)
+            for location in ['new york', 'san francisco', 'london', 'tokyo', 'sydney', 'toronto']:
+                if location in message_lower:
+                    self.add_user_knowledge(username, 'location', f'User is located in {location}')
+                    facts_stored.append(f'location: {location}')
+                    break
+
+        if facts_stored:
+            print(f"Learned about user {username}: {', '.join(facts_stored)}")
+
+        return facts_stored
+
     def chat(self, username, user_message, conversation_history=[]):
         """Main chat method using Hippocampus for knowledge"""
 
@@ -127,16 +167,17 @@ class HippocampusKBAgent:
         context_prompt = self.format_context_for_llm(context)
 
         # Build system prompt
-        system_prompt = f"""You are a helpful IT support agent. Use the following information from the knowledge base:
+        system_prompt = f"""You are a helpful IT support agent.
+
+IMPORTANT: Use the information below to answer questions about this specific user:
 
 {context_prompt}
 
 Instructions:
+- Answer questions using the USER-SPECIFIC INFORMATION above
+- If asked about the user's computer/OS, refer to the information provided
 - Provide clear, actionable IT support
-- Reference company policies when relevant
-- Suggest solutions from past resolved issues
-- Adapt your communication style to the user
-- Be concise but thorough"""
+- Be concise and direct"""
 
         # Build messages for Ollama
         messages = [{"role": "system", "content": system_prompt}]
@@ -152,7 +193,7 @@ Instructions:
             response = requests.post(
                 f"{self.ollama_url}/api/chat",
                 json={
-                    "model": "mistral",
+                    "model": "llama3.2:1b",
                     "messages": messages,
                     "stream": False
                 },
@@ -162,6 +203,9 @@ Instructions:
             result = response.json()
 
             bot_response = result['message']['content']
+
+            # Extract and store user facts from conversation
+            self.extract_user_facts(username, user_message, bot_response)
 
             return {
                 'response': bot_response,
@@ -182,8 +226,8 @@ Instructions:
 # Singleton instance
 _agent_instance = None
 
-def get_hippo_agent(hippo_client=None):
+def get_hippo_agent(hippo_client=None, ollama_url="http://localhost:11434"):
     global _agent_instance
     if _agent_instance is None:
-        _agent_instance = HippocampusKBAgent(hippo_client=hippo_client)
+        _agent_instance = HippocampusKBAgent(hippo_client=hippo_client, ollama_url=ollama_url)
     return _agent_instance

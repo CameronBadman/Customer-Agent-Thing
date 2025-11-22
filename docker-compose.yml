@@ -13,6 +13,10 @@ services:
       - MONGO_INITDB_DATABASE=it-support-agent
     networks:
       - it-support-network
+    deploy:
+      resources:
+        limits:
+          memory: 256M
     healthcheck:
       test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/it-support-agent --quiet
       interval: 10s
@@ -31,6 +35,10 @@ services:
       - hippocampus_data:/data
     networks:
       - it-support-network
+    deploy:
+      resources:
+        limits:
+          memory: 128M
     healthcheck:
       test: ["CMD", "redis-cli", "-p", "6379", "ping"]
       interval: 10s
@@ -47,24 +55,20 @@ services:
       - ollama_data:/root/.ollama
     networks:
       - it-support-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
     deploy:
       resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
+        limits:
+          memory: 2G
+    # Health check removed - ollama image doesn't include curl
+    # Service is functional without health check
+    # GPU configuration removed for macOS compatibility
+    # On macOS, Ollama will use CPU or Metal (Apple Silicon)
 
   # Python FastAPI Service
   api:
     build:
       context: .
-      dockerfile: ./api/Dockerfile
+      dockerfile: api/Dockerfile
     container_name: it-support-api
     ports:
       - "8000:8000"
@@ -82,15 +86,19 @@ services:
       hippocampus:
         condition: service_healthy
       ollama:
-        condition: service_healthy
+        condition: service_started
     networks:
       - it-support-network
+    deploy:
+      resources:
+        limits:
+          memory: 256M
     command: >
       sh -c "
         echo 'Waiting for Ollama to be ready...' &&
         sleep 10 &&
-        echo 'Pulling Mistral model...' &&
-        curl -X POST http://ollama:11434/api/pull -d '{\"name\": \"mistral\"}' || true &&
+        echo 'Pulling Llama 3.2 1B model...' &&
+        curl -X POST http://ollama:11434/api/pull -d '{\"name\": \"llama3.2:1b\"}' || true &&
         echo 'Starting FastAPI server...' &&
         cd /app/api && python main.py
       "
@@ -111,12 +119,16 @@ services:
       - AI_AGENT_URL=http://api:8000/hippo-chat
     volumes:
       - ./server:/app
-      - /app/node_modules
+      - server_node_modules:/app/node_modules
     depends_on:
       - mongodb
       - api
     networks:
       - it-support-network
+    deploy:
+      resources:
+        limits:
+          memory: 128M
     command: npm start
 
   # React Frontend Service
@@ -137,6 +149,10 @@ services:
       - server
     networks:
       - it-support-network
+    deploy:
+      resources:
+        limits:
+          memory: 512M
     stdin_open: true
     tty: true
 
@@ -148,3 +164,4 @@ volumes:
   mongodb_data:
   hippocampus_data:
   ollama_data:
+  server_node_modules:

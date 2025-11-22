@@ -122,7 +122,7 @@ class HippoChatResponse(BaseModel):
 # Startup: Initialize shared clients
 @app.on_event("startup")
 async def startup_event():
-    global hippocampus_client, ollama_client
+    global hippocampus_client, ollama_client, ollama_url
 
     logger.info("Starting Customer AI Agent API...")
 
@@ -132,7 +132,7 @@ async def startup_event():
     ollama_url = os.getenv('OLLAMA_URL', 'http://localhost:11434')
 
     hippocampus_client = HippocampusClient(host=hippo_host, port=hippo_port)
-    ollama_client = OllamaClient(base_url=ollama_url, model='mistral:7b')
+    ollama_client = OllamaClient(base_url=ollama_url, model='llama3.2:1b')
 
     logger.info("✓ Hippocampus client initialized")
     logger.info("✓ Ollama client initialized")
@@ -380,8 +380,8 @@ async def hippo_chat(request: HippoChatRequest):
         raise HTTPException(status_code=500, detail="Hippocampus agent not available")
 
     try:
-        # Get agent with Hippocampus client
-        agent = get_hippo_agent(hippo_client=hippocampus_client)
+        # Get agent with Hippocampus client and Ollama URL
+        agent = get_hippo_agent(hippo_client=hippocampus_client, ollama_url=ollama_url)
 
         result = agent.chat(
             username=request.username,
