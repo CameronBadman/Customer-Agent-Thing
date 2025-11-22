@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import './ChatSidebar.css';
 
-const ChatSidebar = ({ currentChatId, onChatSelect, onNewChat }) => {
+const ChatSidebar = ({ currentChatId, onChatSelect, onNewChat, refreshTrigger }) => {
   const [chatList, setChatList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -27,6 +27,13 @@ const ChatSidebar = ({ currentChatId, onChatSelect, onNewChat }) => {
   useEffect(() => {
     fetchChats();
   }, [fetchChats]);
+
+  // Refresh chat list when refreshTrigger changes
+  useEffect(() => {
+    if (refreshTrigger > 0) {
+      fetchChats();
+    }
+  }, [refreshTrigger, fetchChats]);
 
   const handleDeleteChat = async (chatId, e) => {
     e.stopPropagation();
