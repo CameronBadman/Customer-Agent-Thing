@@ -318,6 +318,34 @@
   font-size: 16px;
 }
 
+.messages-status {
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+.loading-more {
+  color: #667eea;
+  font-style: italic;
+  padding: 10px;
+  font-size: 14px;
+}
+
+.no-more-messages {
+  color: #888;
+  font-style: italic;
+  padding: 10px;
+  font-size: 14px;
+}
+
+.no-more-messages-bottom {
+  text-align: center;
+  color: #888;
+  font-style: italic;
+  padding: 15px 10px;
+  font-size: 14px;
+  margin-top: 10px;
+}
+
 /* Mobile responsive */
 @media (max-width: 768px) {
   .chat-layout {

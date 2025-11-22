@@ -125,9 +125,9 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const getChatMessages = async (chatId) => {
+  const getChatMessages = async (chatId, offset = 0, limit = 24) => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/chat/messages/${chatId}`);
+      const response = await axios.get(`${API_BASE_URL}/chat/messages/${chatId}?offset=${offset}&limit=${limit}`);
       return response.data;
     } catch (error) {
       throw new Error(error.response?.data?.message || 'Failed to get chat messages');

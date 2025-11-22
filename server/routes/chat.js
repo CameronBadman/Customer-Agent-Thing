@@ -136,13 +136,16 @@ router.get('/list', authMiddleware, async (req, res) => {
       });
     }
 
-    // Return chats ordered by most recent first
-    const chatList = userChat.chats.map(chat => ({
-      chatId: chat.chatId,
-      title: chat.title,
-      lastMessage: chat.lastMessage,
-      messageCount: chat.messageCount,
-      updatedAt: chat.lastUpdated
+    // Get actual message counts from Chat collection
+    const chatList = await Promise.all(userChat.chats.map(async (chat) => {
+      const actualChat = await Chat.findOne({ chatId: chat.chatId });
+      return {
+        chatId: chat.chatId,
+        title: chat.title,
+        lastMessage: chat.lastMessage,
+        messageCount: actualChat ? actualChat.messageCount : chat.messageCount,
+        updatedAt: chat.lastUpdated
+      };
     }));
 
     res.json({
@@ -158,10 +161,11 @@ router.get('/list', authMiddleware, async (req, res) => {
   }
 });
 
-// Get specific chat messages
+// Get specific chat messages with pagination
 router.get('/messages/:chatId', authMiddleware, async (req, res) => {
   try {
     const { chatId } = req.params;
+    const { offset = 0, limit = 24 } = req.query;
     const user = req.user;
 
     // Verify this chat belongs to the user
@@ -179,9 +183,26 @@ router.get('/messages/:chatId', authMiddleware, async (req, res) => {
     // Move chat to top in user's list (indicates user opened it)
     await userChat.moveToTop(chatId);
 
+    // Calculate pagination
+    const totalMessages = chat.messages.length;
+    const startIndex = Math.max(0, totalMessages - parseInt(offset) - parseInt(limit));
+    const endIndex = totalMessages - parseInt(offset);
+    
+    const paginatedMessages = chat.messages.slice(startIndex, endIndex);
+    const hasMore = startIndex > 0;
+
     res.json({
       success: true,
-      chat: chat
+      chat: {
+        ...chat.toObject(),
+        messages: paginatedMessages
+      },
+      pagination: {
+        offset: parseInt(offset),
+        limit: parseInt(limit),
+        totalMessages: totalMessages,
+        hasMore: hasMore
+      }
     });
   } catch (error) {
     console.error('Error fetching chat messages:', error);
