@@ -1,8 +1,21 @@
+.chat-layout {
+  display: flex;
+  height: 100vh;
+  font-family: 'Arial', sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.chat-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: white;
+}
+
 .chat-container {
   height: 100vh;
   display: flex;
   flex-direction: column;
-  font-family: 'Arial', sans-serif;
   background: #f8f9fa;
 }
 
@@ -14,6 +27,28 @@
   justify-content: space-between;
   align-items: center;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.sidebar-toggle {
+  display: none;
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background-color 0.3s ease;
+}
+
+.sidebar-toggle:hover {
+  background: rgba(255, 255, 255, 0.3);
 }
 
 .chat-header h2 {
@@ -235,8 +270,64 @@
   background: #a8a8a8;
 }
 
+/* Welcome message styles */
+.welcome-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+  padding: 40px;
+  color: #666;
+}
+
+.welcome-message h3 {
+  color: #333;
+  margin-bottom: 10px;
+  font-size: 24px;
+}
+
+.welcome-message p {
+  margin-bottom: 20px;
+  font-size: 16px;
+}
+
+.start-chat-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 25px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 600;
+  transition: transform 0.2s ease;
+}
+
+.start-chat-btn:hover {
+  transform: translateY(-1px);
+}
+
+.loading-messages {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  color: #666;
+  font-size: 16px;
+}
+
 /* Mobile responsive */
 @media (max-width: 768px) {
+  .chat-layout {
+    position: relative;
+  }
+  
+  .sidebar-toggle {
+    display: block;
+  }
+  
   .chat-header {
     padding: 15px;
   }
@@ -269,5 +360,17 @@
   
   .message-input {
     font-size: 16px; /* Prevent zoom on iOS */
+  }
+  
+  .welcome-message {
+    padding: 20px;
+  }
+  
+  .welcome-message h3 {
+    font-size: 20px;
+  }
+  
+  .welcome-message p {
+    font-size: 14px;
   }
 }

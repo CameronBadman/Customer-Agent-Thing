@@ -93,14 +93,65 @@ export const AuthProvider = ({ children }) => {
     delete axios.defaults.headers.common['Authorization'];
   };
 
-  const sendMessage = async (message) => {
+  const sendMessage = async (message, chatId = null) => {
     try {
       const response = await axios.post(`${API_BASE_URL}/chat/message`, {
         message,
+        chatId,
       });
       return response.data;
     } catch (error) {
       throw new Error(error.response?.data?.message || 'Failed to send message');
+    }
+  };
+
+  const createNewChat = async (title = 'New Chat') => {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/chat/new`, {
+        title,
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Failed to create new chat');
+    }
+  };
+
+  const getChatList = async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/chat/list`);
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Failed to get chat list');
+    }
+  };
+
+  const getChatMessages = async (chatId) => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/chat/messages/${chatId}`);
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Failed to get chat messages');
+    }
+  };
+
+  const searchChat = async (chatId, searchTerm) => {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/chat/search`, {
+        chatId,
+        searchTerm,
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Failed to search chat');
+    }
+  };
+
+  const deleteChat = async (chatId) => {
+    try {
+      const response = await axios.delete(`${API_BASE_URL}/chat/delete/${chatId}`);
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Failed to delete chat');
     }
   };
 
@@ -111,6 +162,11 @@ export const AuthProvider = ({ children }) => {
     register,
     logout,
     sendMessage,
+    createNewChat,
+    getChatList,
+    getChatMessages,
+    searchChat,
+    deleteChat,
     loading,
   };
 
