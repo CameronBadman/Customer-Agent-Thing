@@ -6,8 +6,10 @@ const ChatSidebar = ({ currentChatId, onChatSelect, onNewChat }) => {
   const [chatList, setChatList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [editingChatId, setEditingChatId] = useState(null);
+  const [editTitle, setEditTitle] = useState('');
   
-  const { getChatList, deleteChat } = useAuth();
+  const { getChatList, deleteChat, updateChatTitle } = useAuth();
 
   useEffect(() => {
     fetchChats();
@@ -43,6 +45,43 @@ const ChatSidebar = ({ currentChatId, onChatSelect, onNewChat }) => {
         console.error('Error deleting chat:', error);
       }
     }
+  };
+
+  const handleEditTitle = (chatId, currentTitle, e) => {
+    e.stopPropagation();
+    setEditingChatId(chatId);
+    setEditTitle(currentTitle);
+  };
+
+  const handleSaveTitle = async (chatId, e) => {
+    e.stopPropagation();
+    
+    if (!editTitle.trim()) {
+      setError('Title cannot be empty');
+      return;
+    }
+
+    try {
+      await updateChatTitle(chatId, editTitle.trim());
+      setChatList(prevList => 
+        prevList.map(chat => 
+          chat.chatId === chatId 
+            ? { ...chat, title: editTitle.trim() }
+            : chat
+        )
+      );
+      setEditingChatId(null);
+      setEditTitle('');
+    } catch (error) {
+      setError('Failed to update chat title');
+      console.error('Error updating title:', error);
+    }
+  };
+
+  const handleCancelEdit = (e) => {
+    e.stopPropagation();
+    setEditingChatId(null);
+    setEditTitle('');
   };
 
   const formatDate = (dateString) => {
@@ -117,14 +156,52 @@ const ChatSidebar = ({ currentChatId, onChatSelect, onNewChat }) => {
               onClick={() => onChatSelect(chat.chatId)}
             >
               <div className="chat-item-header">
-                <h4 className="chat-title">{chat.title}</h4>
-                <button
-                  className="delete-chat-btn"
-                  onClick={(e) => handleDeleteChat(chat.chatId, e)}
-                  title="Delete chat"
-                >
-                  ×
-                </button>
+                {editingChatId === chat.chatId ? (
+                  <div className="edit-title-container">
+                    <input
+                      type="text"
+                      value={editTitle}
+                      onChange={(e) => setEditTitle(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && handleSaveTitle(chat.chatId, e)}
+                      className="edit-title-input"
+                      autoFocus
+                    />
+                    <button
+                      className="save-title-btn"
+                      onClick={(e) => handleSaveTitle(chat.chatId, e)}
+                      title="Save title"
+                    >
+                      ✓
+                    </button>
+                    <button
+                      className="cancel-edit-btn"
+                      onClick={handleCancelEdit}
+                      title="Cancel edit"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <h4 className="chat-title">{chat.title}</h4>
+                    <div className="chat-actions">
+                      <button
+                        className="edit-title-btn"
+                        onClick={(e) => handleEditTitle(chat.chatId, chat.title, e)}
+                        title="Edit title"
+                      >
+                        ✏
+                      </button>
+                      <button
+                        className="delete-chat-btn"
+                        onClick={(e) => handleDeleteChat(chat.chatId, e)}
+                        title="Delete chat"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
               
               <p className="last-message">

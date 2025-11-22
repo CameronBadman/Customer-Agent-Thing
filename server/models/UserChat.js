@@ -77,6 +77,17 @@ userChatSchema.methods.moveToTop = function(chatId) {
   return Promise.resolve(this);
 };
 
+// Method to update chat title
+userChatSchema.methods.updateChatTitle = function(chatId, newTitle) {
+  const chat = this.chats.find(chat => chat.chatId === chatId);
+  if (chat) {
+    chat.title = newTitle;
+    chat.lastUpdated = new Date();
+    return this.save();
+  }
+  return Promise.resolve(this);
+};
+
 // Static method to find or create user chat document
 userChatSchema.statics.findOrCreate = async function(username) {
   let userChat = await this.findOne({ username });
