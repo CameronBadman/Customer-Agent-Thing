@@ -13,8 +13,29 @@ import logging
 from datetime import datetime
 
 # Add agent to path
-sys.path.insert(0, '/projects/Customer-Agent-Thing/agent')
-from agent import CustomerAgent, HippocampusClient, OllamaClient
+import os
+agent_path = os.path.join(os.path.dirname(__file__), '..', 'agent')
+sys.path.insert(0, agent_path)
+
+try:
+    from agent import CustomerAgent, HippocampusClient, OllamaClient
+except ImportError:
+    print(f"Warning: Could not import agent module from {agent_path}")
+    CustomerAgent = HippocampusClient = OllamaClient = None
+
+# Import MongoDB-integrated agent (deprecated)
+try:
+    from mongo_agent import get_agent as get_mongo_agent
+except ImportError:
+    print("Warning: Could not import mongo_agent")
+    get_mongo_agent = None
+
+# Import Hippocampus-based agent (NEW - correct architecture)
+try:
+    from hippo_kb_agent import get_hippo_agent
+except ImportError:
+    print("Warning: Could not import hippo_kb_agent")
+    get_hippo_agent = None
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -78,6 +99,26 @@ class SearchKnowledgeRequest(BaseModel):
     query: str
     top_k: int = 5
 
+# MongoDB-integrated chat request
+class MongoChatRequest(BaseModel):
+    username: str = Field(..., description="Username for personalization")
+    message: str = Field(..., description="User message")
+    conversation_history: Optional[List[Dict]] = Field([], description="Previous messages")
+
+class MongoChatResponse(BaseModel):
+    response: str
+    context_used: Dict
+
+# Hippocampus chat request/response
+class HippoChatRequest(BaseModel):
+    username: str = Field(..., description="Username for personalization")
+    message: str = Field(..., description="User message")
+    conversation_history: Optional[List[Dict]] = Field([], description="Previous messages")
+
+class HippoChatResponse(BaseModel):
+    response: str
+    context_used: Dict
+
 # Startup: Initialize shared clients
 @app.on_event("startup")
 async def startup_event():
@@ -85,9 +126,13 @@ async def startup_event():
 
     logger.info("Starting Customer AI Agent API...")
 
-    # Initialize shared clients
-    hippocampus_client = HippocampusClient(host='localhost', port=6379)
-    ollama_client = OllamaClient(base_url='http://localhost:11434', model='mistral:7b')
+    # Initialize shared clients with environment variable support
+    hippo_host = os.getenv('HIPPOCAMPUS_HOST', 'localhost')
+    hippo_port = int(os.getenv('HIPPOCAMPUS_PORT', '6379'))
+    ollama_url = os.getenv('OLLAMA_URL', 'http://localhost:11434')
+
+    hippocampus_client = HippocampusClient(host=hippo_host, port=hippo_port)
+    ollama_client = OllamaClient(base_url=ollama_url, model='mistral:7b')
 
     logger.info("✓ Hippocampus client initialized")
     logger.info("✓ Ollama client initialized")
@@ -294,6 +339,64 @@ async def list_agents():
         "total_agents": len(agents),
         "agents": agents
     }
+
+# MongoDB-integrated chat endpoint
+@app.post("/mongo-chat", response_model=MongoChatResponse)
+async def mongo_chat(request: MongoChatRequest):
+    """
+    Chat with MongoDB-integrated IT support agent
+    Uses 3-tier knowledge base: base, completed issues, user-specific
+    """
+    if get_mongo_agent is None:
+        raise HTTPException(status_code=500, detail="MongoDB agent not available")
+
+    try:
+        mongo_uri = os.getenv("MONGO_URI", "mongodb://localhost:27017/it-support-agent")
+        agent = get_mongo_agent(mongo_uri)
+
+        result = agent.chat(
+            username=request.username,
+            user_message=request.message,
+            conversation_history=request.conversation_history or []
+        )
+
+        return MongoChatResponse(
+            response=result['response'],
+            context_used=result.get('context_used', {})
+        )
+
+    except Exception as e:
+        logger.error(f"MongoDB chat error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Hippocampus-integrated chat endpoint (NEW - correct architecture)
+@app.post("/hippo-chat", response_model=HippoChatResponse)
+async def hippo_chat(request: HippoChatRequest):
+    """
+    Chat with Hippocampus-integrated IT support agent
+    Uses 3-tier Hippocampus namespaces: base, completed, user_specific
+    """
+    if get_hippo_agent is None or hippocampus_client is None:
+        raise HTTPException(status_code=500, detail="Hippocampus agent not available")
+
+    try:
+        # Get agent with Hippocampus client
+        agent = get_hippo_agent(hippo_client=hippocampus_client)
+
+        result = agent.chat(
+            username=request.username,
+            user_message=request.message,
+            conversation_history=request.conversation_history or []
+        )
+
+        return HippoChatResponse(
+            response=result['response'],
+            context_used=result.get('context_used', {})
+        )
+
+    except Exception as e:
+        logger.error(f"Hippocampus chat error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
     import uvicorn
