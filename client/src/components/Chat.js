@@ -13,6 +13,7 @@ const Chat = () => {
   const [currentChatId, setCurrentChatId] = useState(null);
   const [searchResults, setSearchResults] = useState([]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarRefreshTrigger, setSidebarRefreshTrigger] = useState(0);
 
   const { user, logout, sendMessage, createNewChat, getChatMessages } = useAuth();
   const navigate = useNavigate();
@@ -46,6 +47,8 @@ const Chat = () => {
       ]);
       setSearchResults([]);
       setSidebarOpen(false);
+      // Trigger sidebar refresh to show the new chat
+      setSidebarRefreshTrigger(prev => prev + 1);
     } catch (error) {
       console.error('Error creating new chat:', error);
     }
@@ -110,6 +113,8 @@ const Chat = () => {
 
       setTimeout(() => {
         setMessages((prev) => [...prev, botMessage]);
+        // Trigger sidebar refresh to update message count and last message
+        setSidebarRefreshTrigger(prev => prev + 1);
       }, 500);
     } catch (error) {
       setIsTyping(false);
@@ -153,6 +158,7 @@ const Chat = () => {
         currentChatId={currentChatId}
         onChatSelect={handleChatSelect}
         onNewChat={handleNewChat}
+        refreshTrigger={sidebarRefreshTrigger}
       />
       
       <div className="chat-main">
