@@ -82,7 +82,7 @@ router.post('/message', authMiddleware, async (req, res) => {
 
     // Add user message
     const userMessage = {
-      id: Date.now(),
+      id: chat.messageCount + 1,
       content: message.trim(),
       sender: 'user',
       timestamp: new Date()
@@ -95,7 +95,7 @@ router.post('/message', authMiddleware, async (req, res) => {
     await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
 
     const botMessage = {
-      id: Date.now() + 1,
+      id: chat.messageCount + 1,
       content: randomResponse,
       sender: 'bot',
       timestamp: new Date()
@@ -227,6 +227,41 @@ router.post('/search', authMiddleware, async (req, res) => {
     console.error('Error searching chat:', error);
     res.status(500).json({ 
       message: 'Error searching chat', 
+      error: error.message 
+    });
+  }
+});
+
+// Update chat title
+router.put('/title/:chatId', authMiddleware, async (req, res) => {
+  try {
+    const { chatId } = req.params;
+    const { title } = req.body;
+    const user = req.user;
+
+    if (!title || title.trim().length === 0) {
+      return res.status(400).json({ message: 'Title cannot be empty' });
+    }
+
+    // Verify this chat belongs to the user
+    const userChat = await UserChat.findOne({ username: user.username });
+    if (!userChat || !userChat.chats.some(chat => chat.chatId === chatId)) {
+      return res.status(403).json({ message: 'Access denied to this chat' });
+    }
+
+    // Update title in both Chat and UserChat collections
+    await Chat.updateOne({ chatId }, { title: title.trim() });
+    await userChat.updateChatTitle(chatId, title.trim());
+
+    res.json({
+      success: true,
+      message: 'Chat title updated successfully',
+      title: title.trim()
+    });
+  } catch (error) {
+    console.error('Error updating chat title:', error);
+    res.status(500).json({ 
+      message: 'Error updating chat title', 
       error: error.message 
     });
   }

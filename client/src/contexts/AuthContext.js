@@ -16,7 +16,7 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [token, setToken] = useState(localStorage.getItem('token'));
 
-  const API_BASE_URL = 'http://localhost:3000/api';
+  const API_BASE_URL = 'http://localhost:5000/api';
 
   axios.defaults.headers.common['Authorization'] = token ? `Bearer ${token}` : '';
 
@@ -146,6 +146,17 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const updateChatTitle = async (chatId, title) => {
+    try {
+      const response = await axios.put(`${API_BASE_URL}/chat/title/${chatId}`, {
+        title,
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Failed to update chat title');
+    }
+  };
+
   const deleteChat = async (chatId) => {
     try {
       const response = await axios.delete(`${API_BASE_URL}/chat/delete/${chatId}`);
@@ -166,6 +177,7 @@ export const AuthProvider = ({ children }) => {
     getChatList,
     getChatMessages,
     searchChat,
+    updateChatTitle,
     deleteChat,
     loading,
   };
