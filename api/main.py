@@ -37,6 +37,13 @@ except ImportError:
     print("Warning: Could not import hippo_kb_agent")
     get_hippo_agent = None
 
+# Import Curator agent for base knowledge management
+try:
+    from curator_agent import get_curator_agent
+except ImportError:
+    print("Warning: Could not import curator_agent")
+    get_curator_agent = None
+
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -118,6 +125,22 @@ class HippoChatRequest(BaseModel):
 class HippoChatResponse(BaseModel):
     response: str
     context_used: Dict
+
+# Curator request/response
+class CuratorAddRequest(BaseModel):
+    category: str = Field(..., description="Category/key for this knowledge (e.g., 'vpn_setup', 'email_issues')")
+    information: str = Field(..., description="Raw information to be formatted and stored")
+
+class CuratorAddResponse(BaseModel):
+    success: bool
+    category: str
+    formatted_content: Optional[str] = None
+    message: Optional[str] = None
+    error: Optional[str] = None
+
+class CuratorSearchRequest(BaseModel):
+    query: str = Field(..., description="Search query")
+    limit: int = Field(5, description="Maximum results to return")
 
 # Startup: Initialize shared clients
 @app.on_event("startup")
@@ -396,6 +419,80 @@ async def hippo_chat(request: HippoChatRequest):
 
     except Exception as e:
         logger.error(f"Hippocampus chat error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Curator endpoints - Base knowledge management
+@app.post("/curator/add", response_model=CuratorAddResponse)
+async def curator_add_knowledge(request: CuratorAddRequest):
+    """
+    Add knowledge to the base knowledge store
+    The curator will format the information appropriately
+    """
+    if get_curator_agent is None or hippocampus_client is None:
+        raise HTTPException(status_code=500, detail="Curator agent not available")
+
+    try:
+        curator = get_curator_agent(hippo_client=hippocampus_client, ollama_url=ollama_url)
+
+        result = curator.add_knowledge(
+            category=request.category,
+            raw_information=request.information
+        )
+
+        return CuratorAddResponse(**result)
+
+    except Exception as e:
+        logger.error(f"Curator add error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/curator/search")
+async def curator_search_knowledge(request: CuratorSearchRequest):
+    """
+    Search the base knowledge store
+    """
+    if get_curator_agent is None or hippocampus_client is None:
+        raise HTTPException(status_code=500, detail="Curator agent not available")
+
+    try:
+        curator = get_curator_agent(hippo_client=hippocampus_client, ollama_url=ollama_url)
+
+        results = curator.search_base_knowledge(
+            query=request.query,
+            limit=request.limit
+        )
+
+        return {
+            "status": "success",
+            "query": request.query,
+            "results": results,
+            "count": len(results)
+        }
+
+    except Exception as e:
+        logger.error(f"Curator search error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/curator/list")
+async def curator_list_knowledge():
+    """
+    List all entries in the base knowledge store
+    """
+    if get_curator_agent is None or hippocampus_client is None:
+        raise HTTPException(status_code=500, detail="Curator agent not available")
+
+    try:
+        curator = get_curator_agent(hippo_client=hippocampus_client, ollama_url=ollama_url)
+
+        results = curator.list_base_knowledge()
+
+        return {
+            "status": "success",
+            "results": results,
+            "count": len(results)
+        }
+
+    except Exception as e:
+        logger.error(f"Curator list error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
