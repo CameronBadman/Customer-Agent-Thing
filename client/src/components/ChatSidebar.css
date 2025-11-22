@@ -25,7 +25,7 @@
 }
 
 .new-chat-btn {
-  background-color: #007bff;
+  background-color: #3498db;
   color: white;
   border: none;
   padding: 8px 12px;
@@ -36,7 +36,7 @@
 }
 
 .new-chat-btn:hover {
-  background-color: #0056b3;
+  background-color: #2980b9;
 }
 
 .loading-container {
@@ -99,7 +99,7 @@
 
 .chat-item.active {
   background-color: #e3f2fd;
-  border-left: 4px solid #007bff;
+  border-left: 4px solid #3498db;
 }
 
 .chat-item-header {
@@ -140,7 +140,7 @@
 }
 
 .edit-title-btn:hover {
-  color: #007bff;
+  color: #3498db;
   background-color: #f0f8ff;
 }
 
@@ -168,7 +168,7 @@
 
 .edit-title-input:focus {
   outline: none;
-  border-color: #007bff;
+  border-color: #3498db;
   box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
 }
 

@@ -1,0 +1,167 @@
+version: '3.8'
+
+services:
+  # MongoDB Database
+  mongodb:
+    image: mongo:7.0
+    container_name: it-support-mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    environment:
+      - MONGO_INITDB_DATABASE=it-support-agent
+    networks:
+      - it-support-network
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/it-support-agent --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Hippocampus Vector Database
+  hippocampus:
+    build:
+      context: ./Hippocampus
+      dockerfile: Dockerfile
+    container_name: it-support-hippocampus
+    ports:
+      - "6379:6379"
+    volumes:
+      - hippocampus_data:/data
+    networks:
+      - it-support-network
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "6379", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Ollama LLM Service
+  ollama:
+    image: ollama/ollama:latest
+    container_name: it-support-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - it-support-network
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+    # Health check removed - ollama image doesn't include curl
+    # Service is functional without health check
+    # GPU configuration removed for macOS compatibility
+    # On macOS, Ollama will use CPU or Metal (Apple Silicon)
+
+  # Python FastAPI Service
+  api:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    container_name: it-support-api
+    ports:
+      - "8000:8000"
+    environment:
+      - MONGO_URI=mongodb://mongodb:27017/it-support-agent
+      - HIPPOCAMPUS_HOST=hippocampus
+      - HIPPOCAMPUS_PORT=6379
+      - OLLAMA_URL=http://ollama:11434
+    volumes:
+      - ./agent:/app/agent
+      - ./api:/app/api
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      hippocampus:
+        condition: service_healthy
+      ollama:
+        condition: service_started
+    networks:
+      - it-support-network
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    command: >
+      sh -c "
+        echo 'Waiting for Ollama to be ready...' &&
+        sleep 10 &&
+        echo 'Pulling Llama 3.2 1B model...' &&
+        curl -X POST http://ollama:11434/api/pull -d '{\"name\": \"llama3.2:1b\"}' || true &&
+        echo 'Starting FastAPI server...' &&
+        cd /app/api && python main.py
+      "
+
+  # Express Backend Service
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: it-support-server
+    ports:
+      - "5001:5001"
+    environment:
+      - PORT=5001
+      - MONGO_URI=mongodb://mongodb:27017/it-support-agent
+      - JWT_SECRET=your_super_secret_jwt_key_please_change_this_in_production
+      - CLIENT_URL=http://localhost:3000
+      - AI_AGENT_URL=http://api:8000/hippo-chat
+    volumes:
+      - ./server:/app
+      - server_node_modules:/app/node_modules
+    depends_on:
+      - mongodb
+      - api
+    networks:
+      - it-support-network
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+    command: npm start
+
+  # React Frontend Service
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: it-support-client
+    ports:
+      - "3000:3000"
+    environment:
+      - REACT_APP_API_URL=http://localhost:5001/api
+      - CHOKIDAR_USEPOLLING=true
+    volumes:
+      - ./client:/app
+      - /app/node_modules
+    depends_on:
+      - server
+    networks:
+      - it-support-network
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    stdin_open: true
+    tty: true
+
+networks:
+  it-support-network:
+    driver: bridge
+
+volumes:
+  mongodb_data:
+  hippocampus_data:
+  ollama_data:
+  server_node_modules:

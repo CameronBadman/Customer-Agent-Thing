@@ -3,6 +3,7 @@ const authMiddleware = require('../middleware/auth');
 const Chat = require('../models/Chat');
 const UserChat = require('../models/UserChat');
 const { v4: uuidv4 } = require('uuid');
+const axios = require('axios');
 
 const router = express.Router();
 
@@ -90,13 +91,35 @@ router.post('/message', authMiddleware, async (req, res) => {
 
     await chat.addMessage(userMessage);
 
-    // Generate bot response
-    const randomResponse = responses[Math.floor(Math.random() * responses.length)];
-    await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
+    // Get conversation history for context (last 10 messages)
+    const conversationHistory = chat.messages.slice(-10).map(msg => ({
+      role: msg.sender === 'user' ? 'user' : 'assistant',
+      content: msg.content
+    }));
+
+    // Generate bot response using AI agent
+    let botResponse;
+    try {
+      const agentResponse = await axios.post(
+        process.env.AI_AGENT_URL || 'http://localhost:8000/mongo-chat',
+        {
+          username: user.username,
+          message: message.trim(),
+          conversation_history: conversationHistory.slice(0, -1) // Exclude current message
+        },
+        { timeout: 60000 }
+      );
+
+      botResponse = agentResponse.data.response;
+    } catch (agentError) {
+      console.error('AI Agent error:', agentError.message);
+      // Fallback to simple response if AI fails
+      botResponse = "I'm having trouble processing your request right now. Please try again in a moment.";
+    }
 
     const botMessage = {
       id: chat.messageCount + 1,
-      content: randomResponse,
+      content: botResponse,
       sender: 'bot',
       timestamp: new Date()
     };
@@ -109,7 +132,7 @@ router.post('/message', authMiddleware, async (req, res) => {
 
     res.json({
       success: true,
-      response: randomResponse,
+      response: botResponse,
       timestamp: botMessage.timestamp,
       chatId: chatId
     });

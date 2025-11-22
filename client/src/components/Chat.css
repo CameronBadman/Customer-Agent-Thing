@@ -2,7 +2,7 @@
   display: flex;
   height: 100vh;
   font-family: 'Arial', sans-serif;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
 }
 
 .chat-main {
@@ -20,7 +20,7 @@
 }
 
 .chat-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
   color: white;
   padding: 20px;
   display: flex;
@@ -113,7 +113,7 @@
 }
 
 .user-message .message-content {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
   color: white;
   border-bottom-right-radius: 6px;
 }
@@ -198,7 +198,7 @@
 }
 
 .message-input:focus {
-  border-color: #667eea;
+  border-color: #3498db;
 }
 
 .message-input:disabled {
@@ -207,7 +207,7 @@
 }
 
 .send-btn {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
   color: white;
   border: none;
   padding: 12px 24px;
@@ -294,7 +294,7 @@
 }
 
 .start-chat-btn {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
   color: white;
   border: none;
   padding: 12px 24px;
@@ -324,7 +324,7 @@
 }
 
 .loading-more {
-  color: #667eea;
+  color: #3498db;
   font-style: italic;
   padding: 10px;
   font-size: 14px;
